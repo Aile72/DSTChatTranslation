@@ -43,11 +43,12 @@ public class UpdateService(
 				// 处理新消息
 				if (newLines.Count > 0)
 				{
-					foreach (var (line, nickName, chat) in newLines)
+					foreach (var (line, id, nickName, chat) in newLines)
 					{
 						messageService.AddMessage(new ChatLineNameChatPair
 						{
 							Line = $"{line}|{DateTime.Now.Ticks}",
+							Id = id,
 							Name = nickName,
 							Chat = chat
 						});

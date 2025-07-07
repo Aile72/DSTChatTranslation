@@ -108,11 +108,11 @@ public class TranslationService : IDisposable
 	/// <summary>
 	/// 并行翻译单个消息
 	/// </summary>
-	public async Task<(string line, string nickName, string chat)> TranslateMessageAsync(
-		(string line, string nickName, string chat) item, CancellationToken token)
+	public async Task<(string line, string id, string nickName, string chat)> TranslateMessageAsync(
+		(string line, string id, string nickName, string chat) item, CancellationToken token)
 	{
 		string translated = await TranslateChatAsync(item.chat, token);
-		return (item.line, item.nickName, translated);
+		return (item.line, item.id, item.nickName, translated);
 	}
 
 	/// <summary>

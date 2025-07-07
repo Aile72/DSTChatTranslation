@@ -29,4 +29,19 @@ public static partial class RegexHelper
 		Match match = NickNameRegex().Match(input);
 		return match.Success ? match.Groups[2].Value.Trim() : "";
 	}
+
+	/// <summary>
+	/// 正则表达式筛选玩家Id
+	/// </summary>
+	/// <returns></returns>
+	[GeneratedRegex(@"\[Say\] \((.*?)\) (.*?):")]
+	public static partial Regex NickNameAndIdRegex();
+
+	public static (string id, string name) ProcessIdAndName(string input)
+	{
+		Match match = NickNameAndIdRegex().Match(input);
+		return match.Success
+			? (match.Groups[1].Value.Trim(), match.Groups[2].Value.Trim())
+			: ("", "");
+	}
 }

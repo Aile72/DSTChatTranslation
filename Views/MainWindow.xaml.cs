@@ -53,6 +53,7 @@ public partial class MainWindow : Window
 	private ToolStripMenuItem lockWindowMenuItem = null!;
 
 	// 添加服务实例
+	private readonly PlayerColorService _playerColorService;
 	private readonly WindowStateService _windowStateService;
 	private readonly MessageService _messageService;
 	private readonly FileMonitorService _fileMonitorService;
@@ -97,7 +98,8 @@ public partial class MainWindow : Window
 		filePath = Path.Combine(kleiPath, "client_chat_log.txt");
 
 		// 初始化服务
-		_messageService = new MessageService(this);
+		_playerColorService = new PlayerColorService();
+		_messageService = new MessageService(this, _playerColorService);
 		_fileMonitorService = new FileMonitorService(filePath, _messageService);
 		translationService = new TranslationService(_messageService);
 		updateService = new UpdateService(this, _fileMonitorService, _messageService);
@@ -467,6 +469,7 @@ public partial class MainWindow : Window
 		_saveTimer?.Stop();
 		notifyIcon?.Dispose();
 
+		_playerColorService?.Stop();
 		_fileMonitorService?.Dispose();
 		translationService?.Dispose();
 
@@ -479,11 +482,11 @@ public partial class MainWindow : Window
 
 		SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
 
+		Instance = null;
+
 		_appMutex?.ReleaseMutex();
 		_appMutex?.Dispose();
 		_appMutex = null;
-
-		Instance = null;
 
 		base.OnClosed(e);
 	}

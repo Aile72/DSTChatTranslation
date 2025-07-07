@@ -6,7 +6,7 @@ using DSTChatTranslation.Views;
 
 namespace DSTChatTranslation.Services;
 
-public class MessageService(MainWindow mainWindow)
+public class MessageService(MainWindow mainWindow, PlayerColorService playerColorService)
 {
 	public Queue<ChatLineNameChatPair> messageQueue = new();
 	private const int MaxMessages = 10;
@@ -46,6 +46,7 @@ public class MessageService(MainWindow mainWindow)
 		AddMessage(new ChatLineNameChatPair
 		{
 			Line = $"[System]|{DateTime.Now.Ticks}",
+			Id = "[System]",
 			Name = "[System]",
 			Chat = message
 		});
@@ -66,21 +67,32 @@ public class MessageService(MainWindow mainWindow)
 				// 添加所有消息
 				foreach (var pair in messageQueue)
 				{
-					Run nickNameRun = new()
+					if (pair.Id == "[System]")
 					{
-						Text = pair.Name,
-						Foreground = pair.Name == "[System]"
-							? Brushes.Yellow : Brushes.Green
-					};
-
-					Run chatRun = new()
+						// 系统消息特殊处理
+						var systemRun = new Run($"[System]: {pair.Chat}")
+						{
+							Foreground = Brushes.Yellow
+						};
+						mainWindow.outputTextBlock.Inlines.Add(systemRun);
+					}
+					else
 					{
-						Text = $": {pair.Chat}",
-						Foreground = Brushes.White
-					};
+						// 玩家消息：名称使用分配的颜色
+						var nickNameRun = new Run($"{pair.Name}: ")
+						{
+							Foreground = playerColorService.GetPlayerColor(pair.Id)
+						};
 
-					mainWindow.outputTextBlock.Inlines.Add(nickNameRun);
-					mainWindow.outputTextBlock.Inlines.Add(chatRun);
+						var chatRun = new Run(pair.Chat)
+						{
+							Foreground = Brushes.White
+						};
+
+						mainWindow.outputTextBlock.Inlines.Add(nickNameRun);
+						mainWindow.outputTextBlock.Inlines.Add(chatRun);
+					}
+
 					mainWindow.outputTextBlock.Inlines.Add(new LineBreak());
 				}
 			});

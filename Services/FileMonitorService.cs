@@ -66,9 +66,9 @@ namespace DSTChatTranslation.Services
 		/// </summary>
 		/// <param name="token"></param>
 		/// <returns></returns>
-		public async Task<List<(string line, string nickName, string chat)>> GetNewChatLinesAsync(CancellationToken token)
+		public async Task<List<(string line, string id, string nickName, string chat)>> GetNewChatLinesAsync(CancellationToken token)
 		{
-			var result = new List<(string line, string nickName, string chat)>();
+			var result = new List<(string line, string id, string nickName, string chat)>();
 			long currentSize;
 			try
 			{
@@ -134,12 +134,13 @@ namespace DSTChatTranslation.Services
 					int colonIndex = talkLine.IndexOf(':');
 					if (colonIndex == -1) continue;
 
-					string nickName = RegexHelper.ProcessNickNameString(line);
+					var (id, nickName) = RegexHelper.ProcessIdAndName(line);
+
 					string originalChat = colonIndex + 1 < talkLine.Length
 						? talkLine[(colonIndex + 1)..].Trim()
 						: "";
 
-					result.Add((line, nickName, originalChat));
+					result.Add((line, id, nickName, originalChat));
 				}
 			}
 			catch (Exception ex)
@@ -150,7 +151,7 @@ namespace DSTChatTranslation.Services
 			}
 
 			// 并行翻译所有消息
-			var translationTasks = new List<Task<(string line, string nickName, string chat)>>();
+			var translationTasks = new List<Task<(string line, string id, string nickName, string chat)>>();
 			foreach (var item in result)
 			{
 				if (MainWindow.Instance != null)
