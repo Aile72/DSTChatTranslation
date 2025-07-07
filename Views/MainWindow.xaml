@@ -1,0 +1,16 @@
+﻿<Window
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:DSTChatTranslation"
+    xmlns:av="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="av" x:Class="DSTChatTranslation.Views.MainWindow"
+    Title="DST Chat Translation" Height="200" Width="160"
+    WindowStyle="None"
+    AllowsTransparency="True"
+    Background="#80000000">
+    <Grid av:IsHidden="True" av:IsLocked="True">
+        <!-- 界面内容 -->
+        <TextBlock x:Name="outputTextBlock" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-10" Foreground="White" TextWrapping="Wrap" av:IsHidden="True" av:IsLocked="True" />
+    </Grid>
+</Window>

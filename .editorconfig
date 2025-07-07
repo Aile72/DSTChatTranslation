@@ -1,0 +1,10 @@
+﻿[*.cs]
+
+# IDE0052: 删除未读的私有成员
+dotnet_diagnostic.IDE0052.severity = none
+
+# SYSLIB1054: 使用 “LibraryImportAttribute” 而不是 “DllImportAttribute” 在编译时生成 P/Invoke 封送代码
+dotnet_diagnostic.SYSLIB1054.severity = none
+
+# CA2211: 非常量字段应当不可见
+dotnet_diagnostic.CA2211.severity = none
