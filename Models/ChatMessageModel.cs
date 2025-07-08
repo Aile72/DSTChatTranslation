@@ -1,5 +1,6 @@
 ﻿namespace DSTChatTranslation.Models;
 
+
 public class ChatLineNameChatPair
 {
 	public required string Line { get; set; }
