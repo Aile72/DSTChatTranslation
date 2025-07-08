@@ -1,11 +1,11 @@
 ﻿using System.Net;
 using System.Net.Http;
 using System.Windows;
+using System.Diagnostics;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 using MessageBox = System.Windows.MessageBox;
-using DSTChatTranslation.Helpers;
 using Application = System.Windows.Application;
-using System.Diagnostics;
+using DSTChatTranslation.Helpers;
 
 namespace DSTChatTranslation.Services;
 

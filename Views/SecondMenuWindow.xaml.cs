@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using GTranslate;
+using ComboBox = System.Windows.Controls.ComboBox;
 using DSTChatTranslation.Helpers;
 using DSTChatTranslation.Models;
 using DSTChatTranslation.Services;
-using GTranslate;
-using ComboBox = System.Windows.Controls.ComboBox;
 
 namespace DSTChatTranslation.Views;
 

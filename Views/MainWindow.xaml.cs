@@ -1,8 +1,10 @@
 ﻿using System.IO;
 using System.Text.Json;
+using System.Media;
 using System.Windows;
 using System.Windows.Input;
-using System.Media;
+using System.Windows.Threading;
+using System.Diagnostics;
 using Microsoft.Win32;
 using Point = System.Windows.Point;
 using Application = System.Windows.Application;
@@ -12,9 +14,9 @@ using Window = System.Windows.Window;
 using MessageBox = System.Windows.MessageBox;
 using DSTChatTranslation.Models;
 using DSTChatTranslation.Services;
-using System.Diagnostics;
+
 using DSTChatTranslation.Helpers;
-using System.Windows.Threading;
+
 
 namespace DSTChatTranslation.Views;
 

@@ -1,6 +1,6 @@
-﻿using DSTChatTranslation.Models;
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
+using DSTChatTranslation.Models;
 
 namespace DSTChatTranslation.Helpers;
 
