@@ -1,4 +1,5 @@
-﻿using System.Windows.Interop;
+﻿using System.Diagnostics;
+using System.Windows.Interop;
 using DSTChatTranslation.Helpers;
 using DSTChatTranslation.Views;
 
@@ -15,6 +16,7 @@ public class WindowStateService(MainWindow mainWindow)
 	/// </summary>
 	public void ApplyWindowLockState(bool isLocked)
 	{
+		Debug.WriteLine($"应用窗口锁定状态: {isLocked}");
 		var handle = new WindowInteropHelper(mainWindow).Handle;
 		var exstyle = NativeMethods.GetWindowLong(handle, GWL_EXSTYLE);
 

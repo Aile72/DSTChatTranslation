@@ -22,6 +22,12 @@ public class GetCurrentVersion
 
 			if (!string.IsNullOrWhiteSpace(infoVersion))
 			{
+				int hashIndex = infoVersion.IndexOf('+');
+				if (hashIndex >= 0)
+				{
+					infoVersion = infoVersion[..hashIndex];
+				}
+
 				Debug.WriteLine($"当前信息版本: {infoVersion}");
 				return infoVersion;
 			}

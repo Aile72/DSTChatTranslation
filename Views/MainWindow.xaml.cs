@@ -59,6 +59,7 @@ public partial class MainWindow : Window
 	private readonly WindowStateService _windowStateService;
 	private readonly MessageService _messageService;
 	private readonly FileMonitorService _fileMonitorService;
+	private CheckVersionService _checkVersionService = null!;
 	public TranslationService translationService;
 	public readonly UpdateService updateService;
 
@@ -92,6 +93,7 @@ public partial class MainWindow : Window
 		MouseLeftButtonUp += Window_MouseLeftButtonUp;
 		MouseMove += Window_MouseMove;
 		SizeChanged += Window_SizeChanged;
+		Loaded += MainWindow_Loaded;
 		SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
 		// 获取聊天日志文件路径
@@ -105,7 +107,7 @@ public partial class MainWindow : Window
 		_fileMonitorService = new FileMonitorService(filePath, _messageService);
 		translationService = new TranslationService(_messageService);
 		updateService = new UpdateService(this, _fileMonitorService, _messageService);
-		_windowStateService = new(this);
+		_windowStateService = new WindowStateService(this);
 
 		cancellationTokenSource = new CancellationTokenSource();
 
@@ -300,27 +302,8 @@ public partial class MainWindow : Window
 		{
 			try
 			{
-				// 禁用菜单项防止重复点击
 				menuItem.Enabled = false;
-
-				// 获取当前版本
-				string currentVersion = GetCurrentVersion.GetVersion();
-
-				// 创建检查服务
-				var checkVersionService = new CheckVersionService(
-					workshopItemUrl: "https://steamcommunity.com/sharedfiles/filedetails/?id=3516450074",
-					currentVersion: currentVersion,
-					syncContext: SynchronizationContext.Current
-				);
-
-				// 订阅更新确认事件
-				checkVersionService.UpdateConfirmed += (s, args) =>
-				{
-					OpenUrlHandler.OpenUrlInDefaultBrowser(checkVersionService.WorkshopItemUrl);
-				};
-
-				// 直接执行检查
-				await checkVersionService.CheckForUpdatesAsync();
+				await _checkVersionService.CheckForUpdatesAsync(isManualCheck: true);
 			}
 			catch (Exception ex)
 			{
@@ -364,6 +347,44 @@ public partial class MainWindow : Window
 			OpenUrlHandler.OpenUrlInDefaultBrowser(service.WorkshopItemUrl);
 		}
 	}
+
+	/// <summary>
+	/// 加载完成事件处理
+	/// </summary>
+	/// <param name="sender"></param>
+	/// <param name="e"></param>
+	private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
+	{
+		// 应用窗口锁定状态
+		_windowStateService.ApplyWindowLockState(AppSettingsModel.Current.IsWindowLocked);
+
+		// 初始化版本检查服务
+		_checkVersionService = new CheckVersionService(
+			workshopItemUrl: "https://steamcommunity.com/sharedfiles/filedetails/?id=3516450074",
+			currentVersion: GetCurrentVersion.GetVersion(),
+			syncContext: SynchronizationContext.Current
+		);
+		_checkVersionService.UpdateConfirmed += OnUpdateConfirmed;
+		Task.Run(async () =>
+		{
+			// 首次启动或设置不存在时初始化
+			if (AppSettingsModel.Current.LastUpdateCheckTime == DateTime.MinValue)
+			{
+				// 首次启动立即检查
+				await _checkVersionService.CheckForUpdatesAsync(isManualCheck: false);
+
+				Debug.WriteLine("首次启动或设置不存在，初始化LastUpdateCheckTime");
+				AppSettingsModel.Current.LastUpdateCheckTime = DateTime.Now;
+				SaveSettings();
+			}
+			else
+			{
+				// 常规启动，按计划检查
+				await _checkVersionService.CheckForUpdatesAsync(isManualCheck: false);
+			}
+		});
+	}
+
 
 	/// <summary>
 	/// 窗口大小改变事件

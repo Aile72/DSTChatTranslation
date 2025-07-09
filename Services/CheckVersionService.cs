@@ -1,11 +1,13 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Windows;
-using System.Diagnostics;
+using Application = System.Windows.Application;
 using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 using MessageBox = System.Windows.MessageBox;
-using Application = System.Windows.Application;
 using DSTChatTranslation.Helpers;
+using DSTChatTranslation.Models;
+using DSTChatTranslation.Views;
 
 namespace DSTChatTranslation.Services;
 
@@ -53,10 +55,17 @@ public partial class CheckVersionService
 	/// <summary>
 	/// 检查更新并显示结果提示框
 	/// </summary>
-	public async Task CheckForUpdatesAsync()
+	public async Task CheckForUpdatesAsync(bool isManualCheck = false)
 	{
 		try
 		{
+			// 检查是否达到检查间隔（仅自动检查时生效）
+			if (!isManualCheck && DateTime.Now - AppSettingsModel.Current.LastUpdateCheckTime < TimeSpan.FromDays(7))
+			{
+				Debug.WriteLine("尚未达到更新检查间隔（7天），跳过自动检查");
+				return;
+			}
+
 			string html = await DownloadHtmlWithTimeoutAsync(CancellationToken.None);
 			string onlineVersion = ParseVersionFromHtml(html);
 
@@ -64,13 +73,31 @@ public partial class CheckVersionService
 
 			if (IsNewerVersion(onlineVersion, _currentVersion))
 			{
-				// 显示更新提示并等待用户确认
 				bool confirmed = ShowConfirmMessage(
 					$"New version available: {onlineVersion}\nYour version: {_currentVersion}\n\nDo you want to update now?",
 					string.Empty,
-					MessageBoxIcon.Warning);
+					MessageBoxIcon.Information);
 
-				// 如果用户确认更新，触发更新事件
+				if (confirmed)
+				{
+					UpdateConfirmed?.Invoke(this, EventArgs.Empty);
+				}
+			}
+			else if (isManualCheck) // 手动检查时显示最新版本提示
+			{
+				ShowMessage($"You have the latest version\n\nWorkshop version: {onlineVersion}\nYour version: {_currentVersion}",
+							string.Empty, MessageBoxIcon.Information);
+			}
+		}
+		catch (Exception ex)
+		{
+			if (isManualCheck) // 仅手动检查显示错误提示
+			{
+				bool confirmed = ShowConfirmMessage(
+					"Check version failed: Please check your internet connection and try again later\n\nDo you want to update now?",
+					string.Empty,
+					MessageBoxIcon.Error);
+
 				if (confirmed)
 				{
 					UpdateConfirmed?.Invoke(this, EventArgs.Empty);
@@ -78,23 +105,17 @@ public partial class CheckVersionService
 			}
 			else
 			{
-				// 已是最新提示
-				ShowMessage($"You have the latest version\n\nWorkshop version: {onlineVersion}\nYour version: {_currentVersion}",
-							string.Empty, MessageBoxIcon.Information);
+				Debug.WriteLine($"自动更新检查失败: {ex.Message}");
 			}
 		}
-		catch (Exception)
+		finally
 		{
-			// 检查失败提示并等待用户确认
-			bool confirmed = ShowConfirmMessage(
-				"Check version failed: Please check your internet connection and try again later\n\nDo you want to update now?",
-				string.Empty,
-				MessageBoxIcon.Error);
-
-			// 如果用户确认更新，触发更新事件
-			if (confirmed)
+			// 仅自动检查更新最后检查时间
+			if (!isManualCheck)
 			{
-				UpdateConfirmed?.Invoke(this, EventArgs.Empty);
+				AppSettingsModel.Current.LastUpdateCheckTime = DateTime.Now;
+				MainWindow.SaveSettings();
+				Debug.WriteLine($"已更新最后检查时间: {AppSettingsModel.Current.LastUpdateCheckTime}");
 			}
 		}
 	}
@@ -104,20 +125,19 @@ public partial class CheckVersionService
 	/// </summary>
 	private static bool ShowConfirmMessage(string message, string title, MessageBoxIcon icon)
 	{
-		bool confirmed = false;
+		MessageBoxResult? result = null;
 
 		Application.Current.Dispatcher.Invoke(() =>
 		{
-			var result = MessageBox.Show(
+			result = MessageBox.Show(
 				message,
 				title,
 				MessageBoxButton.YesNo,
 				TranslateIconToMessageBoxImage(icon));
-
-			confirmed = (result == MessageBoxResult.Yes);
 		});
 
-		return confirmed;
+		// 显式处理关闭按钮情况
+		return result.HasValue && result.Value == MessageBoxResult.Yes;
 	}
 
 	/// <summary>
@@ -196,6 +216,13 @@ public partial class CheckVersionService
 	private static Version NormalizeVersion(string version)
 	{
 		// 规范化版本格式
+		int hashIndex = version.IndexOf('+');
+		if (hashIndex >= 0)
+		{
+			version = version[..hashIndex];
+		}
+
+		// 规范化版本格式
 		var parts = version.Split('.');
 		if (parts.Length < 2) version += ".0";
 		if (parts.Length < 3) version += ".0";
@@ -217,6 +244,11 @@ public partial class CheckVersionService
 		});
 	}
 
+	/// <summary>
+	/// 将MessageBoxIcon转换为MessageBoxImage
+	/// </summary>
+	/// <param name="icon"></param>
+	/// <returns></returns>
 	private static MessageBoxImage TranslateIconToMessageBoxImage(MessageBoxIcon icon)
 	{
 		return icon switch
