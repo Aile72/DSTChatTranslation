@@ -125,20 +125,13 @@ namespace DSTChatTranslation.Services
 				for (int i = 0; i < completeLineCount; i++)
 				{
 					string line = lines[i].TrimEnd('\r');
-					if (line.Length < 18) continue;
 
-					string subString = line.Substring(11, Math.Min(7, line.Length - 11));
-					if (!subString.Contains("[Say]")) continue;
+					var match = RegexHelper.NickNameAndIdRegex().Match(line);
+					if (!match.Success) continue;
 
-					string talkLine = line.Length > 17 ? line[17..] : "";
-					int colonIndex = talkLine.IndexOf(':');
-					if (colonIndex == -1) continue;
-
-					var (id, nickName) = RegexHelper.ProcessIdAndName(line);
-
-					string originalChat = colonIndex + 1 < talkLine.Length
-						? talkLine[(colonIndex + 1)..].Trim()
-						: "";
+					string id = match.Groups[1].Value.Trim();
+					string nickName = match.Groups[2].Value.Trim();
+					string originalChat = line[(match.Index + match.Length)..].Trim();
 
 					result.Add((line, id, nickName, originalChat));
 				}
