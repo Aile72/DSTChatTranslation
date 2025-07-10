@@ -57,6 +57,8 @@ public partial class CheckVersionService
 	/// </summary>
 	public async Task CheckForUpdatesAsync(bool isManualCheck = false)
 	{
+		int autoCheckVersionFailCount = AppSettingsModel.Current.AutoCheckVersionFailCount;
+
 		try
 		{
 			string html = await DownloadHtmlWithTimeoutAsync(CancellationToken.None);
@@ -81,14 +83,19 @@ public partial class CheckVersionService
 				ShowMessage($"You have the latest version\n\nWorkshop version: {onlineVersion}\nYour version: {_currentVersion}",
 							string.Empty, MessageBoxIcon.Information);
 			}
+
+			// 成功检查后重置失败计数
+			AppSettingsModel.Current.AutoCheckVersionFailCount = 0;
+			MainWindow.SaveSettings();
+			Debug.WriteLine("自动更新检查成功，重置失败次数");
 		}
 		catch (Exception ex)
 		{
-			int autoCheckVersionFailCount = AppSettingsModel.Current.AutoCheckVersionFailCount;
+			bool checkFailed = autoCheckVersionFailCount > 4;
 
-			if (isManualCheck || autoCheckVersionFailCount > 9) // 仅手动检查 或 自动检测失败 > 9 时 显示错误提示
+			if (isManualCheck || checkFailed) // 仅手动检查 或 自动检测失败 > 4 时 显示错误提示
 			{
-				if (autoCheckVersionFailCount > 9)
+				if (checkFailed)
 				{
 					AppSettingsModel.Current.AutoCheckVersionFailCount = 0;
 					MainWindow.SaveSettings();

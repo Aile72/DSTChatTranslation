@@ -178,6 +178,7 @@ public partial class MainWindow : Window
 					if (invalidProperties.Count > 0)
 					{
 						json = jsonObject.ToJsonString(CachedJsonSerializerOptions);
+						SaveSettings();
 						Debug.WriteLine($"移除无效配置项: {string.Join(", ", invalidProperties)}");
 					}
 				}

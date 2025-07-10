@@ -14,7 +14,7 @@ public class AppSettingsModel
 	public string TargetLanguage { get; set; } = "eng";
 	public bool UseProxy { get; set; }
 	public string? ProxyUrl { get; set; }
-	public int AutoCheckVersionFailCount { get; set;} = 0;
+	public int AutoCheckVersionFailCount { get; set; } = 0;
 
 	[JsonIgnore]
 	public static AppSettingsModel Current { get; set; } = new();
