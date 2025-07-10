@@ -61,6 +61,7 @@ namespace DSTChatTranslation.Services
 				if (!File.Exists(_filePath))
 				{
 					File.Create(_filePath).Close();
+					Debug.WriteLine("文件已创建");
 				}
 				_lastKnownSize = GetFileSizeSafe();
 			}
@@ -79,6 +80,7 @@ namespace DSTChatTranslation.Services
 		{
 			if (_disposing || MainWindow.Instance == null)
 			{
+				Debug.WriteLine("无法获取新的聊天行");
 				return [];
 			}
 
