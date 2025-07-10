@@ -123,6 +123,7 @@ public class PlayerColorService
 	// 在应用程序退出时停止计时器
 	public void Stop()
 	{
+		_cleanupTimer.Enabled = false;
 		_cleanupTimer.Stop();
 		_cleanupTimer.Dispose();
 	}

@@ -1,21 +1,21 @@
-﻿using System.IO;
-using System.Text.Json;
+﻿using DSTChatTranslation.Helpers;
+using DSTChatTranslation.Models;
+using DSTChatTranslation.Services;
+using Microsoft.Win32;
+using System.Diagnostics;
+using System.IO;
 using System.Media;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
-using System.Diagnostics;
-using Microsoft.Win32;
-using Point = System.Windows.Point;
 using Application = System.Windows.Application;
 using Cursors = System.Windows.Input.Cursors;
+using MessageBox = System.Windows.MessageBox;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Window = System.Windows.Window;
-using MessageBox = System.Windows.MessageBox;
-using DSTChatTranslation.Models;
-using DSTChatTranslation.Services;
-
-using DSTChatTranslation.Helpers;
+using Point = System.Windows.Point;
 
 
 namespace DSTChatTranslation.Views;
@@ -23,6 +23,7 @@ namespace DSTChatTranslation.Views;
 public partial class MainWindow : Window
 {
 	public static MainWindow? Instance { get; private set; }
+	public bool IsClosed { get; private set; }
 
 	// 托盘图标
 	private NotifyIcon? notifyIcon;
@@ -44,7 +45,7 @@ public partial class MainWindow : Window
 	private readonly object _fileLock = new(); // 文件访问锁
 
 	// 定时器和取消令牌
-	private readonly DispatcherTimer _saveTimer = new();
+	private DispatcherTimer? _saveTimer = new();
 	public static CancellationTokenSource? cancellationTokenSource;
 
 	// 二级菜单窗口
@@ -151,6 +152,37 @@ public partial class MainWindow : Window
 			if (File.Exists(SettingsFilePath))
 			{
 				var json = File.ReadAllText(SettingsFilePath);
+
+				// 反序列化前先检查无效属性
+				var jsonNode = JsonNode.Parse(json);
+				if (jsonNode is JsonObject jsonObject)
+				{
+					// 获取当前有效的属性名称
+					var validProperties = typeof(AppSettingsModel).GetProperties()
+						.Select(p => p.Name)
+						.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+					// 标记需要删除的无效属性
+					var invalidProperties = jsonObject
+						.Where(kvp => !validProperties.Contains(kvp.Key))
+						.Select(kvp => kvp.Key)
+						.ToList();
+
+					// 删除无效属性
+					foreach (var prop in invalidProperties)
+					{
+						jsonObject.Remove(prop);
+					}
+
+					// 如果有无效属性被删除，重新序列化JSON
+					if (invalidProperties.Count > 0)
+					{
+						json = jsonObject.ToJsonString(CachedJsonSerializerOptions);
+						Debug.WriteLine($"移除无效配置项: {string.Join(", ", invalidProperties)}");
+					}
+				}
+
+				// 反序列化处理后的JSON
 				AppSettingsModel.Current = JsonSerializer.Deserialize<AppSettingsModel>(json) ?? new AppSettingsModel();
 			}
 			else
@@ -367,21 +399,8 @@ public partial class MainWindow : Window
 		_checkVersionService.UpdateConfirmed += OnUpdateConfirmed;
 		Task.Run(async () =>
 		{
-			// 首次启动或设置不存在时初始化
-			if (AppSettingsModel.Current.LastUpdateCheckTime == DateTime.MinValue)
-			{
-				// 首次启动立即检查
-				await _checkVersionService.CheckForUpdatesAsync(isManualCheck: false);
-
-				Debug.WriteLine("首次启动或设置不存在，初始化LastUpdateCheckTime");
-				AppSettingsModel.Current.LastUpdateCheckTime = DateTime.Now;
-				SaveSettings();
-			}
-			else
-			{
-				// 常规启动，按计划检查
-				await _checkVersionService.CheckForUpdatesAsync(isManualCheck: false);
-			}
+			// 启动后立即检查版本
+			await _checkVersionService.CheckForUpdatesAsync(isManualCheck: false);
 		});
 	}
 
@@ -479,8 +498,8 @@ public partial class MainWindow : Window
 			AppSettingsModel.Current.Height = Height;
 
 			_lastSavedPosition = new Point(Left, Top);
-			_saveTimer.Stop();
-			_saveTimer.Start();
+			_saveTimer?.Stop();
+			_saveTimer?.Start();
 		}
 	}
 
@@ -489,7 +508,11 @@ public partial class MainWindow : Window
 	/// </summary>
 	protected override void OnClosed(EventArgs e)
 	{
+		IsClosed = true;
+
 		_saveTimer?.Stop();
+		_saveTimer = null;
+
 		notifyIcon?.Dispose();
 
 		_playerColorService?.Stop();
@@ -507,7 +530,6 @@ public partial class MainWindow : Window
 
 		Instance = null;
 
-		_appMutex?.ReleaseMutex();
 		_appMutex?.Dispose();
 		_appMutex = null;
 

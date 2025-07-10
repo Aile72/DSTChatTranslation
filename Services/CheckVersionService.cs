@@ -59,13 +59,6 @@ public partial class CheckVersionService
 	{
 		try
 		{
-			// 检查是否达到检查间隔（仅自动检查时生效）
-			if (!isManualCheck && DateTime.Now - AppSettingsModel.Current.LastUpdateCheckTime < TimeSpan.FromDays(7))
-			{
-				Debug.WriteLine("尚未达到更新检查间隔（7天），跳过自动检查");
-				return;
-			}
-
 			string html = await DownloadHtmlWithTimeoutAsync(CancellationToken.None);
 			string onlineVersion = ParseVersionFromHtml(html);
 
@@ -91,10 +84,18 @@ public partial class CheckVersionService
 		}
 		catch (Exception ex)
 		{
-			if (isManualCheck) // 仅手动检查显示错误提示
+			int autoCheckVersionFailCount = AppSettingsModel.Current.AutoCheckVersionFailCount;
+
+			if (isManualCheck || autoCheckVersionFailCount > 9) // 仅手动检查 或 自动检测失败 > 9 时 显示错误提示
 			{
+				if (autoCheckVersionFailCount > 9)
+				{
+					AppSettingsModel.Current.AutoCheckVersionFailCount = 0;
+					MainWindow.SaveSettings();
+					Debug.WriteLine($"自动更新检查失败, 重置次数");
+				}
 				bool confirmed = ShowConfirmMessage(
-					"Check version failed: Please check your internet connection and try again later\n\nDo you want to update now?",
+					"Check version failed: Please check your internet connection and try again later\n\nDo you want to check version now?",
 					string.Empty,
 					MessageBoxIcon.Error);
 
@@ -105,17 +106,9 @@ public partial class CheckVersionService
 			}
 			else
 			{
-				Debug.WriteLine($"自动更新检查失败: {ex.Message}");
-			}
-		}
-		finally
-		{
-			// 仅自动检查更新最后检查时间
-			if (!isManualCheck)
-			{
-				AppSettingsModel.Current.LastUpdateCheckTime = DateTime.Now;
+				AppSettingsModel.Current.AutoCheckVersionFailCount++;
 				MainWindow.SaveSettings();
-				Debug.WriteLine($"已更新最后检查时间: {AppSettingsModel.Current.LastUpdateCheckTime}");
+				Debug.WriteLine($"自动更新检查失败{AppSettingsModel.Current.AutoCheckVersionFailCount}次: {ex.Message}");
 			}
 		}
 	}

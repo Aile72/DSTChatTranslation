@@ -17,6 +17,13 @@ public class UpdateService(
 	/// </summary>
 	public async void ReadFileAndUpdateUI()
 	{
+		if (!Application.Current.Dispatcher.CheckAccess() ||
+		!mainWindow.IsLoaded ||
+		mainWindow.IsClosed) // 需要实现IsClosed属性
+		{
+			return;
+		}
+
 		CancellationToken token;
 		lock (_queueLock)
 		{

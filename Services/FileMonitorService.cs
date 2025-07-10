@@ -14,6 +14,8 @@ namespace DSTChatTranslation.Services
 		private readonly object _fileLock = new();
 		private readonly MessageService _messageService;
 		private readonly System.Threading.Timer _pollingTimer;
+		private bool _disposed;
+		private volatile bool _disposing;
 
 		public FileMonitorService(string filePath, MessageService messageService)
 		{
@@ -32,6 +34,13 @@ namespace DSTChatTranslation.Services
 		/// <param name="state"></param>
 		private static void CheckFileChanges(object? state)
 		{
+			if (MainWindow.Instance == null ||
+				MainWindow.cancellationTokenSource == null ||
+				MainWindow.Instance.updateService == null)
+			{
+				return;
+			}
+
 			try
 			{
 				MainWindow.Instance?.updateService?.ReadFileAndUpdateUI();
@@ -68,6 +77,11 @@ namespace DSTChatTranslation.Services
 		/// <returns></returns>
 		public async Task<List<(string line, string id, string nickName, string chat)>> GetNewChatLinesAsync(CancellationToken token)
 		{
+			if (_disposing || MainWindow.Instance == null)
+			{
+				return [];
+			}
+
 			var result = new List<(string line, string id, string nickName, string chat)>();
 			long currentSize;
 			try
@@ -179,7 +193,13 @@ namespace DSTChatTranslation.Services
 		/// </summary>
 		public void Dispose()
 		{
-			_pollingTimer?.Dispose(); // 释放定时器
+			if (_disposed) return;
+			_disposing = true;
+
+			_pollingTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+			_pollingTimer?.Dispose();
+
+			_disposed = true;
 			GC.SuppressFinalize(this);
 		}
 	}

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace DSTChatTranslation.Models;
 
 public class AppSettingsModel
@@ -12,7 +14,8 @@ public class AppSettingsModel
 	public string TargetLanguage { get; set; } = "eng";
 	public bool UseProxy { get; set; }
 	public string? ProxyUrl { get; set; }
-	public DateTime LastUpdateCheckTime { get; set; } = DateTime.MinValue;
+	public int AutoCheckVersionFailCount { get; set;} = 0;
 
+	[JsonIgnore]
 	public static AppSettingsModel Current { get; set; } = new();
 }
